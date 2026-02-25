@@ -3,18 +3,19 @@ package MenuBar;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
+import javax.swing.JToggleButton;
 
 import GUI.GridHandler;
 import GUI.WallPoint;
@@ -27,7 +28,6 @@ import de.javagl.obj.MtlWriter;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
 import de.javagl.obj.ObjFaces;
-import de.javagl.obj.ObjSplitting;
 import de.javagl.obj.ObjUtils;
 import de.javagl.obj.ObjWriter;
 import de.javagl.obj.Objs;
@@ -50,6 +50,7 @@ public class ExportObjButton extends JButton
 	int vCount = 1;
 	int tCount = 0;
 	int nCount = 0;
+	@SuppressWarnings("resource")
 	public ExportObjButton()
 	{
 		addActionListener(e -> 
@@ -75,7 +76,7 @@ public class ExportObjButton extends JButton
 					//}
 				} catch (IOException e1) 
 		    	{
-					System.out.println("Failed to write file");
+					System.out.println("Failed to write obj file");
 					e1.printStackTrace();
 				}
 		    	try 
@@ -84,9 +85,26 @@ public class ExportObjButton extends JButton
 		    		OutputStream outputStream = new FileOutputStream(Paths.get(outputPath+file.getName().substring(0, file.getName().lastIndexOf('.'))+".mtl").toFile());
 		    		MtlWriter.write(toMtl(), outputStream);
 		    		
-					Files.write(Paths.get(outputPath+"cmn_01.png"), Files.readAllBytes(new File("cmn_01.png").toPath()));
-					Files.write(Paths.get(outputPath+"cmn_02.png"), Files.readAllBytes(new File("cmn_02.png").toPath()));
-					Files.write(Paths.get(outputPath+"cmn_05.png"), Files.readAllBytes(new File("cmn_05.png").toPath()));
+		    		try {
+		    			//In jar
+		    			InputStream test = ClassLoader.getSystemResourceAsStream("cmn_01.png");
+		    			byte[] test2 = test.readAllBytes();
+		    			System.out.println(test2.length);
+		    			Files.write(Paths.get(outputPath+"cmn_01.png"), ClassLoader.getSystemResourceAsStream("cmn_01.png").readAllBytes());
+						Files.write(Paths.get(outputPath+"cmn_02.png"), ClassLoader.getSystemResourceAsStream("cmn_02.png").readAllBytes());
+						Files.write(Paths.get(outputPath+"cmn_05.png"), ClassLoader.getSystemResourceAsStream("cmn_05.png").readAllBytes());
+		    		} catch (IOException e2) 
+		    		{
+		    			System.out.println("Failed to locate Texture");
+		    		} catch (NullPointerException e2)
+		    		{
+		    			//In Eclipse
+		    			Files.write(Paths.get(outputPath+"cmn_01.png"), Files.readAllBytes(new File("src/cmn_01.png").toPath()));
+						Files.write(Paths.get(outputPath+"cmn_02.png"), Files.readAllBytes(new File("src/cmn_02.png").toPath()));
+						Files.write(Paths.get(outputPath+"cmn_05.png"), Files.readAllBytes(new File("src/cmn_05.png").toPath()));
+		    		}
+		    		
+					
 				} catch (IOException e1) 
 		    	{
 					System.out.println("Failed to write file");
