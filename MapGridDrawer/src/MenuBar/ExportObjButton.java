@@ -8,26 +8,26 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
-import javax.swing.JToggleButton;
-
 import GUI.GridHandler;
 import GUI.WallPoint;
+import WorldChunkManager.GroundGroup;
+import WorldChunkManager.Shore;
+import WorldChunkManager.ShoreGroup;
 import WorldChunkManager.Vertex;
+import WorldChunkManager.Wall;
 import WorldChunkManager.WallDefinitions;
+import WorldChunkManager.WallGroup;
 import de.javagl.obj.FloatTuple;
 import de.javagl.obj.FloatTuples;
 import de.javagl.obj.Mtl;
 import de.javagl.obj.MtlWriter;
 import de.javagl.obj.Mtls;
 import de.javagl.obj.Obj;
-import de.javagl.obj.ObjFaces;
 import de.javagl.obj.ObjUtils;
 import de.javagl.obj.ObjWriter;
 import de.javagl.obj.Objs;
@@ -46,10 +46,14 @@ public class ExportObjButton extends JButton
 	//ArrayList<String> faces = new ArrayList<String>();
 	ArrayList<WallPoint> points = null;
 	ArrayList<WallPoint> usedPoints = new ArrayList<WallPoint>();
-	ArrayList<ArrayList<Integer>> GroundVertGroups = new ArrayList<ArrayList<Integer>>();
-	int vCount = 1;
-	int tCount = 0;
-	int nCount = 0;
+	public static int startOfShoreCoords = -1;
+	private ShoreGroup shoreObjects = null;
+	private WallGroup wallObjects = null;
+	private GroundGroup GroundVerts = null;
+	private ArrayList<ShoreGroup> shoreObjectGroups = new ArrayList<ShoreGroup>();
+	private ArrayList<WallGroup> wallObjectGroups = new ArrayList<WallGroup>();
+	private ArrayList<WallGroup> coastObjectGroups = new ArrayList<WallGroup>();
+	private ArrayList<GroundGroup> groundVertexGroups = new ArrayList<GroundGroup>();
 	@SuppressWarnings("resource")
 	public ExportObjButton()
 	{
@@ -151,18 +155,22 @@ public class ExportObjButton extends JButton
 		ground.setMapKd("C:/cmn_01.png");
 		materials.add(ground);
 		
+		Mtl shore = Mtls.create("ripple_m__WAVESIDE");
+		shore.setNs(250f);
+		shore.setKa(1f,1f,1f);
+		shore.setKs(0f,0f,0f);
+		shore.setKe(0f,0f,0f);
+		shore.setNi(1.5f);
+		shore.setD(1f);
+		shore.setIllum(1);
+		shore.setMapKd("C:/waveside02.png");
+		shore.setMapD("C:/waveside02.png");
+		materials.add(shore);
+		
 		return materials;
 	}
-	private void toObj(ArrayList<WallPoint> points1) 
+	private void addTextureCoords()
 	{
-		obj = Objs.create();
-		vCount = 1;
-		tCount = 0;
-		nCount = 0;
-		usedPoints = new ArrayList<WallPoint>();
-		Set<WallPoint> setWithoutDuplicates = new HashSet<WallPoint>(points1);
-		points = new ArrayList<WallPoint>(setWithoutDuplicates);
-		//Short
 		obj.addTexCoord(FloatTuples.create(0.000000f, 0.250000f));
 		obj.addTexCoord(FloatTuples.create(0.000000f, 0.371094f));
 		obj.addTexCoord(FloatTuples.create(0.000000f, 0.433594f));
@@ -204,239 +212,179 @@ public class ExportObjButton extends JButton
 		obj.addTexCoord(FloatTuples.create(1.000000f, 0.871094f));
 		obj.addTexCoord(FloatTuples.create(1.000000f, 0.933594f));
 		obj.addTexCoord(FloatTuples.create(1.000000f, 1.000000f));
-		
+		startOfShoreCoords=obj.getNumTexCoords();
+		obj.addTexCoord(FloatTuples.create(0.000000f, 0.984f));
+		obj.addTexCoord(FloatTuples.create(0.000000f, 0.344f));
+		obj.addTexCoord(FloatTuples.create(0.250000f, 0.984f));
+		obj.addTexCoord(FloatTuples.create(0.250000f, 0.344f));
+		obj.addTexCoord(FloatTuples.create(0.500000f, 0.984f));
+		obj.addTexCoord(FloatTuples.create(0.500000f, 0.344f));
+		obj.addTexCoord(FloatTuples.create(0.750000f, 0.984f));
+		obj.addTexCoord(FloatTuples.create(0.750000f, 0.344f));
+		obj.addTexCoord(FloatTuples.create(1.000000f, 0.984f));
+		obj.addTexCoord(FloatTuples.create(1.000000f, 0.344f));
 		obj.addNormal(FloatTuples.create(0,1,0));
+	}
+	private void toObj(ArrayList<WallPoint> points1) 
+	{
+		obj = Objs.create();
+		usedPoints = new ArrayList<WallPoint>();
+		Set<WallPoint> setWithoutDuplicates = new HashSet<WallPoint>(points1);
+		points = new ArrayList<WallPoint>(setWithoutDuplicates);
+		addTextureCoords();
 		
-		GroundVertGroups = new ArrayList<ArrayList<Integer>>();
+		groundVertexGroups = new ArrayList<GroundGroup>();
 		int index = 0;
 		for(int i = 0; i< points.size(); i++)
 		{
-			System.out.println(Arrays.toString(points.toArray()));
+			//System.out.println(Arrays.toString(points.toArray()));
 			WallPoint p = points.get(i);
 			ArrayList<String> group = new ArrayList<String>();
 			group.add(p.getMaterial() + "_" + index);
 			obj.setActiveGroupNames(group);
 			if(p!=null&&usedPoints.indexOf(p)==-1)
 			{
-				
 				addConnectedVertices(p, index);
 				index++;
 				i = -1;
 			}
 		}
+		
+		
+		obj.setActiveMaterialGroupName("cmn_02_m");
+		for(int i = 0; i<wallObjectGroups.size(); i++)
+		{
+			ArrayList<String> groupNames = new ArrayList<String>();
+			groupNames.add("Wall_"+i);
+			obj.setActiveGroupNames(groupNames);
+			
+			WallGroup wallObjects = wallObjectGroups.get(0);
+			
+			wallObjects.addVertices(obj);
+			wallObjects.addFaces(obj);
+		}
+		obj.setActiveMaterialGroupName("cmn_05_m");
+		for(int i = 0; i<coastObjectGroups.size(); i++)
+		{
+			ArrayList<String> groupNames = new ArrayList<String>();
+			groupNames.add("Coast_"+i);
+			obj.setActiveGroupNames(groupNames);
+			
+			WallGroup wallObjects = coastObjectGroups.get(0);
+			
+			wallObjects.addVertices(obj);
+			wallObjects.addFaces(obj);
+		}
+		obj.setActiveMaterialGroupName("ripple_m__WAVESIDE");
+		
+		for(int i = 0; i<shoreObjectGroups.size(); i++)
+		{
+			ArrayList<String> groupNames = new ArrayList<String>();
+			groupNames.add("Shore_"+i);
+			obj.setActiveGroupNames(groupNames);
+			
+			ShoreGroup shoreObjects = shoreObjectGroups.get(0);
+			
+			shoreObjects.addVertices(obj);
+			shoreObjects.addFaces(obj);
+		}
+		
+		
+		
 		obj.setActiveMaterialGroupName("cmn_01_m");
 		
-		for(int i = 0; i<GroundVertGroups.size(); i++)
+		for(int i = 0; i<groundVertexGroups.size(); i++)
 		{
 			ArrayList<String> groupNames = new ArrayList<String>();
 			groupNames.add("Ground_"+i);
 			obj.setActiveGroupNames(groupNames);
-			
-			//create real int[] array for verts
-			//createtexture array of dynamic points
-			//create normal array of values 1
-			ArrayList<Integer> GroundVerts = GroundVertGroups.get(i);
-			int[] verticies = new int[GroundVerts.size()];
-			int[] textureMappings = new int[GroundVerts.size()];
-			int[] normals = new int[GroundVerts.size()];
-			for(int j = 0; j<GroundVerts.size(); j++)
-			{
-				verticies[j]=GroundVerts.get(j)-1;
-				textureMappings[j] = getTextureMappings(GroundVerts.get(j))-1;
-				normals[j] = 1;
-			}
-			if(groundFacesUp(GroundVerts))
-			{
-				obj.addFace(verticies, textureMappings, normals);
-			}
+			GroundGroup GroundVerts = groundVertexGroups.get(i);
+			GroundVerts.addVertices(obj);
+			GroundVerts.addFaces(obj);
 			
 		}
 	}
-	private boolean groundFacesUp(ArrayList<Integer> groundVerts) 
-	{
-		if(groundVerts.size()<3)
-		{
-			return false;
-		}
-		//get Vectors
-		FloatTuple A = obj.getVertex(groundVerts.get(1));//Middle
-		FloatTuple B = obj.getVertex(groundVerts.get(0));//Start
-		FloatTuple C = obj.getVertex(groundVerts.get(2));//End
-		
-		//Crossproduct but only calculating upness of vector
-		float[] AB = new float[] {B.getX() - A.getX(), B.getY() - A.getY(), B.getZ() - A.getZ()};
-		float[] AC = new float[] {C.getX() - A.getX(), C.getY() - A.getY(), C.getZ() - A.getZ()};
-		float yMag = (AB[0]*AC[2]-AC[0]*AB[2]);
-		return yMag>=0;
-	}
-	private int getTextureMappings(Integer integer) 
-	{
-		FloatTuple vert = obj.getVertex(integer.intValue()-1);
-		float u = ((vert.getX()*100+32)/64)*4;
-		float v = (((vert.getZ()*100-32)/64)*-1)*4-3;
-		obj.addTexCoord(FloatTuples.create(u,v));
-		return obj.getNumTexCoords();
-	}
+	
 	private void addConnectedVertices(WallPoint p, int objIndex) 
 	{
-		ArrayList<Integer> GroundVerts = new ArrayList<Integer>();
 		WallPoint point = p.getFurthestPoint();
 		//obj.addNormal(FloatTuples.create(0,1,0));
 		int index = 0;
 		boolean isLoop = point==null;
+		GroundVerts = new GroundGroup(isLoop);
+		shoreObjects = new ShoreGroup(isLoop);
+		wallObjects = new WallGroup(isLoop);
+		
 		if(isLoop)
 		{
 			point = p;
 			while(point.nextPoint()!=p)
 			{
 				//Returns Ground Vertex for easier but less readable code
-				GroundVerts.add(OBJVertices(point, index));
+				OBJVertices(point, index);
 				point = point.nextPoint();
 				points.remove(point);
 				usedPoints.add(point);
 				index++;
 			}
 			//Adding in the last Point
-			GroundVerts.add(OBJVertices(point, index));
+			OBJVertices(point, index);
 			point = point.nextPoint();
 			points.remove(point);
 			usedPoints.add(point);
 			index++;
-			GroundVertGroups.add(GroundVerts);
+			
 		}
 		else
 		{
+			//Get the first point
 			point = point.previousPoint().firstPoint(point);
 			while(point!=null)
 			{
-				GroundVerts.add(OBJVertices(point, index));
+				OBJVertices(point, index);
 				points.remove(point);
 				usedPoints.add(point);
 				point = point.nextPoint();
 				index--;
 			}
-			GroundVertGroups.add(GroundVerts);
 		}
-		//points.remove(p);
-		//usedPoints.add(p);
-		
-		//String ret = "o " + p.getMaterial() + "_" + objIndex +"\n";
-		//
-		//System.out.println(ret);
-		//verts = new ArrayList<String>();
-		//normals = new ArrayList<String>();
-		
-		//faces = new ArrayList<String>();
-		
-		
-		//OBJVertices(p, index);
-		int iMod = 0;
-		for(int i = 0; i<obj.getNumVertices()/4-1; i++)
+		groundVertexGroups.add(GroundVerts);
+		shoreObjectGroups.add(shoreObjects);
+		if(wallObjects.isCoast())
 		{
-			if(obj.getVertex(i*4).getY()==-0.02)			
-			{
-				obj.setActiveMaterialGroupName("cmn_05_m");
-			}
-			else 
-			{
-				obj.setActiveMaterialGroupName("cmn_02_m");
-			}
-			int heightTextOffset =0;
-			if(Math.abs(obj.getVertex(i*4).getY()
-					-obj.getVertex(i*4+3).getY())>.019)			{
-				heightTextOffset=20;
-			}
-			int j = i*4+vCount;
-			obj.setActiveMaterialGroupName("cmn_02_m");
-			addChunkFaces(j,j+4, heightTextOffset+i%4*4);
-			iMod = i%4;
-		}//"/" + (i%4*4+j+tCount) + "/"
-		if(obj.getVertex(iMod*4).getY()==-0.02)			
-		{
-			obj.setActiveMaterialGroupName("cmn_05_m");
+			coastObjectGroups.add(wallObjects);
 		}
-		else 
+		else
 		{
-			obj.setActiveMaterialGroupName("cmn_02_m");
+			wallObjectGroups.add(wallObjects);
 		}
-		int heightTextOffset =0;
-		if(Math.abs(obj.getVertex(iMod*4).getY()
-				-obj.getVertex(iMod*4+3).getY())>.019)
-		{
-			heightTextOffset=20;
-		}
-		int maxFace = obj.getNumVertices()-3;
-		iMod = (iMod+1)%4;
-		if(isLoop) addChunkFaces(maxFace, vCount, heightTextOffset+(iMod)*4);
-		
-		
-		//System.out.println(ret);
-		vCount = obj.getNumVertices()+1;
-		nCount += obj.getNumNormals();
 	}
-	private void addChunkFaces(int startVertexOffset, int endVertexOffset, int textureOffset)
+	private void OBJVertices(WallPoint p, int index)
 	{
-		startVertexOffset --;
-		endVertexOffset --;
-		textureOffset --; // Quick solution to an off by one mistake
-		obj.addFace(ObjFaces.create(
-				new int[] {startVertexOffset, endVertexOffset, startVertexOffset+1},
-				new int[] {1+textureOffset, 5+textureOffset, 2+textureOffset},
-				new int[] {0,0,0})
-				);
-		obj.addFace(ObjFaces.create(
-				new int[] {startVertexOffset+1, endVertexOffset, endVertexOffset+1},
-				new int[] {2+textureOffset, 5+textureOffset, 6+textureOffset},
-				new int[] {0,0,0})
-				);
-		obj.addFace(ObjFaces.create(
-				new int[] {startVertexOffset+1, endVertexOffset+1, startVertexOffset+2},
-				new int[] {2+textureOffset, 6+textureOffset, 3+textureOffset},
-				new int[] {0,0,0})
-				);
-		obj.addFace(ObjFaces.create(
-				new int[] {startVertexOffset+2, endVertexOffset+1, endVertexOffset+2},
-				new int[] {3+textureOffset, 6+textureOffset, 7+textureOffset},
-				new int[] {0,0,0})
-				);
-		obj.addFace(ObjFaces.create(
-				new int[] {startVertexOffset+2, endVertexOffset+2, startVertexOffset+3},
-				new int[] {3+textureOffset, 7+textureOffset, 4+textureOffset},
-				new int[] {0,0,0})
-				);
-		obj.addFace(ObjFaces.create(
-				new int[] {startVertexOffset+3, endVertexOffset+2, endVertexOffset+3},
-				new int[] {4+textureOffset, 7+textureOffset, 8+textureOffset},
-				new int[] {0,0,0})
-				);
-	}
-	
-	private double getHeightVal(String string) 
-	{
-		//System.out.println(string);
-		String temp = string.substring(string.indexOf(' ')+1, string.lastIndexOf(' '));
-		temp = temp.substring(temp.indexOf(' '));
-		//System.out.println(temp);
-		return Double.parseDouble(temp);
-	}
-	private Integer OBJVertices(WallPoint p, int index)
-	{
-		//TODO change the return to void and add the ground vert outside this method
-		//String ret = "";
-		Vertex[] def = WallDefinitions.getSegmentCoords(p.getMaterial(), index%4);
+		Vertex[] def = WallDefinitions.getSegmentCoords(p.getMaterial());
 		Vertex d = null;
 		if(p!=null)
 		{
 			double theta = p.getAngle();
 			for(int i =0; i <4; i++)
 			{
-				obj.addVertex(getVertexCoords(p, theta, def[i]));
+				wallObjects.add(new Wall(p));
 			}
+			GroundVerts.add(getVertexCoords(p, theta, def[3]));
+			System.out.println(GroundVerts.size());
 			d = WallDefinitions.pointNormal(def);
 			obj.addNormal(FloatTuples.create((float)d.getX(), (float)d.getY(), (float)d.getZ()));
+			if(p.getMaterial().hasShore())
+			{
+				shoreObjects.add( new Shore(
+						getVertexCoords(p, theta, new Vertex(0.261780,0,-1.98)),
+						getVertexCoords(p, theta, new Vertex(-.95,0,-1.98))
+						));
+			}
 		}
-		return obj.getNumVertices();
 	}
+	
+	
 	private FloatTuple getVertexCoords(WallPoint p, double theta, Vertex v)
 	{
 		float x = (float) ((p.x + Math.cos(theta)*v.getX()-32)/100.0);

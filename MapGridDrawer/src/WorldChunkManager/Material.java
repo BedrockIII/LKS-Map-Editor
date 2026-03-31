@@ -7,8 +7,8 @@ public class Material
 	String name = "Material_00";
 	String texture = "cmn_02_m";
 	boolean grassyWalls = false;
-	int bottomHeight = 0; // where is the bottom of the wall
-	int topHeight = 1; //where is the top of the wall
+	int bottomHeight = -1; // where is the bottom of the wall
+	int topHeight = 0; //where is the top of the wall
 	Color displayColor = new Color(255,0,0);
 	public Material(String name)
 	{
@@ -70,5 +70,9 @@ public class Material
 	public void setColor(Color newC) 
 	{
 		displayColor = newC;
+	}
+	public boolean hasShore() 
+	{
+		return bottomHeight==-1;
 	}
 }

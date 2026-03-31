@@ -195,6 +195,7 @@ public class WallPoint extends Point
 	{
 		if (L1 == null) return this;
 		if (this.equals(startingPoint)) return null;
+		//if(startingPoint.getMaterial()!=material) return this;
 		return L1.getStartPoint().firstPoint(startingPoint);
 	}
 	

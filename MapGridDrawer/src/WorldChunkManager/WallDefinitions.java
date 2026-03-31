@@ -9,7 +9,7 @@ public class WallDefinitions
 	public final int ShoreWallModel2 = 3;
 	public final int WaterWallModel = 4;
 	private static int height;
-	public static Vertex[] getSegmentCoords(Material mat, int index)
+	public static Vertex[] getSegmentCoords(Material mat)
 	{
 		int topHeight = mat.getTopHeight();
 		int bottomHeight = mat.getBottomHeight();
@@ -19,6 +19,15 @@ public class WallDefinitions
 		
 		ret = new Vertex[] {new Vertex(0.261780,0,2*bottomHeight),new Vertex(0,0,2*topHeight-.7),new Vertex(0.261780,0,2*topHeight-.1),new Vertex(0.902954,0,2*topHeight)};
 		
+		//if(bottomHeight == -1)
+		//{
+			//ret = new Vertex[] {new Vertex(0.261780,0,2*bottomHeight),new Vertex(0,0,2*topHeight-.7),
+					//new Vertex(0.261780,0,2*topHeight-.1),new Vertex(0.902954,0,2*topHeight), 
+					//new Vertex(0.261780,0,2*bottomHeight+.02),new Vertex(-.95,0,2*bottomHeight+.02)};
+		//}
+		
+		//Useless
+		int index = 0;
 		if(height==1)
 		{ //Bottom, Outermost and definition, End of grass, Top
 			ret[0].setUV(.25, .25*index%4);
@@ -39,10 +48,10 @@ public class WallDefinitions
 		
 		
 		
-		if (bottomHeight == -1)
-		{
-			ret = addShore(ret);
-		}
+		//if (bottomHeight == -1)
+		//{
+			//ret = addShore(ret);
+		//}
 		if (includeGrass) ret = addGrass(ret);
 		return ret;
 	}
